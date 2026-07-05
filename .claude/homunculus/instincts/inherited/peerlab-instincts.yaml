@@ -1,0 +1,281 @@
+# Instincts generated from https://github.com/ejoliet/peerlab
+# Generated: 2026-07-05T17:57:16.614Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: peerlab-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/ejoliet/peerlab
+---
+
+# Peerlab Commit Length
+
+## Action
+
+Write moderate-length commit messages (~68 characters)
+
+## Evidence
+
+- Average commit message length: 68 chars
+- Based on 2 commits
+
+---
+id: peerlab-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ejoliet/peerlab
+---
+
+# Peerlab Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: peerlab-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ejoliet/peerlab
+---
+
+# Peerlab Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: peerlab-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ejoliet/peerlab
+---
+
+# Peerlab Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: peerlab-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/ejoliet/peerlab
+---
+
+# Peerlab Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: peerlab-instinct-file-naming-camelcase
+trigger: "When creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct File Naming Camelcase
+
+## Action
+
+Name the file using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.files
+
+---
+id: peerlab-instinct-function-naming-camelcase
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Function Naming Camelcase
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions
+
+---
+id: peerlab-instinct-class-naming-pascalcase
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Class Naming Pascalcase
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: peerlab-instinct-constant-naming-screaming-snake-case
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Constant Naming Screaming Snake Case
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: peerlab-instinct-import-relative
+trigger: "When importing a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Import Relative
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle
+
+---
+id: peerlab-instinct-export-named
+trigger: "When exporting functions or variables"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Export Named
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle
+
+---
+id: peerlab-instinct-test-location-separate
+trigger: "When adding new tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Test Location Separate
+
+## Action
+
+Place test files in the 'test' or 'testsite' folders, separate from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+- Common folders: test, testsite
+
+---
+id: peerlab-instinct-commit-freeform
+trigger: "When writing a commit message"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Commit Freeform
+
+## Action
+
+Write a concise, freeform message without a required prefix
+
+## Evidence
+
+- commits.type is freeform
+- commits.prefixes is empty
+- Examples: 'Add WebRTC folder-serving spike...'
+- Examples: 'Fix chunked-body buffer copy...'
+
+---
+id: peerlab-instinct-commit-length-medium
+trigger: "When composing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: ejoliet/peerlab
+---
+
+# Peerlab Instinct Commit Length Medium
+
+## Action
+
+Keep the commit message around 68 characters on average
+
+## Evidence
+
+- commits.averageLength is 68
+
