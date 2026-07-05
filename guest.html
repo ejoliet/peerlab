@@ -46,6 +46,9 @@
     const toU8 = (d) => d instanceof ArrayBuffer
       ? new Uint8Array(d)
       : new Uint8Array(d.buffer, d.byteOffset, d.byteLength);
+    // Tight copy: binarypack may hand us a view into a larger buffer, and
+    // finish() transfers the whole underlying ArrayBuffer to the SW.
+    const toBuf = (d) => d instanceof ArrayBuffer ? d : toU8(d).slice().buffer;
 
     function onData(msg) {
       const p = pending.get(msg.id);
@@ -68,7 +71,7 @@
         finish(msg.id, p, p.meta.status, p.meta.mimeType, all.buffer);
         return;
       }
-      finish(msg.id, p, msg.status, msg.mimeType, toU8(msg.body).buffer);
+      finish(msg.id, p, msg.status, msg.mimeType, toBuf(msg.body));
     }
 
     function finish(id, p, status, mimeType, body) {

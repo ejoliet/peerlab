@@ -10,3 +10,7 @@
 8. `sw.js`: race the port reply against a 10s timeout; reply becomes `Response(body, {status, headers: {Content-Type: mimeType}})`, timeout becomes a 504.
 9. `testsite/`: `index.html` + `style.css` + `app.js` + `logo.png` (png intentionally > 200KB so success criterion 1 also exercises chunking).
 10. Verify all 5 success criteria with guest files on one port and host.html on another (`python3 -m http.server`); `test/e2e.mjs` automates this headlessly by stubbing `showDirectoryPicker` with an OPFS-backed directory handle.
+
+## Result
+
+All 5 success criteria verified headlessly (Chrome, host on :8001, guest on :8002, real public PeerServer signaling): styled+interactive render including a 480KB chunked png, all `/app/*` responses served by the SW, host-side `style.css` edit visible after guest reload without re-picking, real 404 for a missing file, cross-origin host/guest. The SW↔page relay needed no workarounds; the one subtlety is that the SW must use `clients.matchAll({includeUncontrolled: true})` to find guest.html, because on first load that page is not yet controlled by the SW. Rerun with `node test/e2e.mjs` (needs `puppeteer-core` and Chrome; the two static servers are started by hand as above).
