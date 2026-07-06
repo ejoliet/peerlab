@@ -1,0 +1,17 @@
+body {
+  font-family: sans-serif;
+  background: #1e2a38;
+  color: #eee;
+  text-align: center;
+  padding-top: 3rem;
+}
+h1 { color: #7fd0ff; }
+button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: #7fd0ff;
+  cursor: pointer;
+}
+img { display: block; margin: 2rem auto; border-radius: 12px; }

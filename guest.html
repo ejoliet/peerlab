@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebRTC Folder Guest</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    #state { padding: 0.5rem 1rem; background: #eee; font-size: 0.9rem; }
+    iframe { flex: 1; border: none; }
+  </style>
+</head>
+<body>
+  <div id="state">Starting…</div>
+  <iframe id="site"></iframe>
+
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script>
+    const setState = (s) => { document.getElementById('state').textContent = s; };
+
+    const hostId = new URLSearchParams(location.search).get('host');
+    if (!hostId) {
+      setState('Missing ?host=<peerId> parameter.');
+      throw new Error('missing host param');
+    }
+
+    // AIDEV-NOTE: SW <-> page relay. The service worker cannot run PeerJS
+    // (no window, and the WebRTC connection must live in one place), so this
+    // page owns the data channel. The SW posts {id, path} plus a dedicated
+    // MessagePort for each intercepted fetch; we forward the request to the
+    // host and post the reply back through that port.
+    const pending = new Map(); // id -> { port, meta, parts, got }
+    let conn = null;
+
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const { id, path } = e.data;
+      const port = e.ports[0];
+      if (!conn || !conn.open) {
+        port.postMessage({ status: 502, mimeType: 'text/plain',
+          body: new TextEncoder().encode('No peer connection').buffer });
+        return;
+      }
+      pending.set(id, { port, meta: null, parts: null, got: 0 });
+      conn.send({ id, path });
+    });
+
+    const toU8 = (d) => d instanceof ArrayBuffer
+      ? new Uint8Array(d)
+      : new Uint8Array(d.buffer, d.byteOffset, d.byteLength);
+    // Tight copy: binarypack may hand us a view into a larger buffer, and
+    // finish() transfers the whole underlying ArrayBuffer to the SW.
+    const toBuf = (d) => d instanceof ArrayBuffer ? d : toU8(d).slice().buffer;
+
+    function onData(msg) {
+      const p = pending.get(msg.id);
+      if (!p) return;
+      if (msg.chunked) {
+        // AIDEV-NOTE: header of a chunked reply; body follows as {id, seq, data}
+        // messages on the same ordered channel.
+        p.meta = msg;
+        p.parts = new Array(msg.total);
+        return;
+      }
+      if (p.parts) {
+        p.parts[msg.seq] = toU8(msg.data);
+        p.got++;
+        if (p.got < p.meta.total) return;
+        const size = p.parts.reduce((n, u) => n + u.byteLength, 0);
+        const all = new Uint8Array(size);
+        let off = 0;
+        for (const u of p.parts) { all.set(u, off); off += u.byteLength; }
+        finish(msg.id, p, p.meta.status, p.meta.mimeType, all.buffer);
+        return;
+      }
+      finish(msg.id, p, msg.status, msg.mimeType, toBuf(msg.body));
+    }
+
+    function finish(id, p, status, mimeType, body) {
+      pending.delete(id);
+      p.port.postMessage({ status, mimeType, body }, [body]);
+    }
+
+    (async () => {
+      setState('Registering service worker…');
+      await navigator.serviceWorker.register('sw.js');
+      await navigator.serviceWorker.ready;
+
+      setState('Connecting to signaling server…');
+      const peer = new Peer();
+      peer.on('error', (err) => setState('Peer error: ' + err));
+      peer.on('open', () => {
+        setState('Connecting to host ' + hostId + '…');
+        conn = peer.connect(hostId, { reliable: true });
+        conn.on('data', onData);
+        conn.on('error', (err) => setState('Connection error: ' + err));
+        conn.on('close', () => setState('Connection to host closed.'));
+        conn.on('open', () => {
+          setState('Connected to ' + hostId + ' — loading /app/index.html');
+          document.getElementById('site').src = '/app/index.html';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

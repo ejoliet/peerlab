@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WebRTC Folder Host</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; }
+    code, input { font-family: monospace; }
+    #guestUrl { width: 100%; box-sizing: border-box; }
+    #log { background: #f4f4f4; padding: 0.5rem; max-height: 300px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Host: serve a local folder over WebRTC</h1>
+  <button id="pick">Pick folder</button>
+  <p id="status">No folder picked yet.</p>
+  <div id="share" hidden>
+    <p>Peer ID: <code id="peerId"></code></p>
+    <p>
+      Guest URL (adjust the origin if guest.html is served elsewhere):<br>
+      <input id="guestUrl" readonly>
+      <button id="copy">Copy</button>
+    </p>
+  </div>
+  <pre id="log"></pre>
+
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script>
+    const MIME = {
+      html: 'text/html',
+      css: 'text/css',
+      js: 'text/javascript',
+      json: 'application/json',
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      svg: 'image/svg+xml',
+      ico: 'image/x-icon',
+      wasm: 'application/wasm',
+    };
+    // AIDEV-NOTE: PeerJS data channel messages have practical size limits;
+    // bodies above this threshold are split into a header message followed
+    // by ordered chunk messages (the channel is reliable+ordered).
+    const CHUNK_SIZE = 200 * 1024;
+
+    let dirHandle = null;
+    const log = (msg) => {
+      document.getElementById('log').textContent += msg + '\n';
+    };
+
+    document.getElementById('pick').addEventListener('click', async () => {
+      dirHandle = await window.showDirectoryPicker();
+      document.getElementById('status').textContent =
+        'Serving folder: ' + dirHandle.name;
+      startPeer();
+    });
+
+    let peer = null;
+    function startPeer() {
+      if (peer) return;
+      peer = new Peer();
+      peer.on('open', (id) => {
+        document.getElementById('peerId').textContent = id;
+        const url = new URL('guest.html?host=' + encodeURIComponent(id), location.href);
+        document.getElementById('guestUrl').value = url.href;
+        document.getElementById('share').hidden = false;
+      });
+      peer.on('connection', (conn) => {
+        log('Guest connected: ' + conn.peer);
+        conn.on('data', (msg) => handleRequest(conn, msg));
+        conn.on('close', () => log('Guest disconnected: ' + conn.peer));
+      });
+      peer.on('error', (err) => log('Peer error: ' + err));
+      document.getElementById('copy').addEventListener('click', () => {
+        navigator.clipboard.writeText(document.getElementById('guestUrl').value);
+      });
+    }
+
+    function mimeFor(path) {
+      const ext = path.split('.').pop().toLowerCase();
+      return MIME[ext] || 'application/octet-stream';
+    }
+
+    async function resolveFile(path) {
+      // Walk nested directory handles segment by segment; re-read from disk
+      // on every request so host-side edits are picked up without re-picking.
+      const segments = path.split('/').filter(Boolean).map(decodeURIComponent);
+      let dir = dirHandle;
+      for (const seg of segments.slice(0, -1)) {
+        dir = await dir.getDirectoryHandle(seg);
+      }
+      const fileHandle = await dir.getFileHandle(segments[segments.length - 1]);
+      return (await fileHandle.getFile()).arrayBuffer();
+    }
+
+    async function handleRequest(conn, msg) {
+      if (!msg || typeof msg.path !== 'string') return;
+      let path = msg.path === '/' ? '/index.html' : msg.path;
+      try {
+        const body = await resolveFile(path);
+        log('200 ' + msg.path + ' (' + body.byteLength + ' bytes)');
+        sendResponse(conn, msg.id, 200, mimeFor(path), body);
+      } catch (e) {
+        log('404 ' + msg.path);
+        const body = new TextEncoder().encode('Not found: ' + msg.path).buffer;
+        sendResponse(conn, msg.id, 404, 'text/plain', body);
+      }
+    }
+
+    function sendResponse(conn, id, status, mimeType, body) {
+      if (body.byteLength <= CHUNK_SIZE) {
+        conn.send({ id, status, mimeType, body });
+        return;
+      }
+      // AIDEV-NOTE: chunked reply protocol: one header message (no body),
+      // then `total` messages {id, seq, data}. Guest reassembles by seq.
+      const total = Math.ceil(body.byteLength / CHUNK_SIZE);
+      conn.send({ id, chunked: true, total, status, mimeType });
+      for (let seq = 0; seq < total; seq++) {
+        conn.send({ id, seq, data: body.slice(seq * CHUNK_SIZE, (seq + 1) * CHUNK_SIZE) });
+      }
+    }
+  </script>
+</body>
+</html>
